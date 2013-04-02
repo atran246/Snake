@@ -30,8 +30,9 @@
 (define HEIGHT 19)
 
 ; Snake
-(define HEAD (circle (/ SCALE 2) "solid" "orange"))
-(define BODY (circle (/ SCALE 2) "solid" "red"))
+(define HEAD (circle (/ SCALE 5) "solid" "orange"))
+(define BODY (circle (/ SCALE 5) "solid" "red"))
+
 
 ; Graphical Constants
 (define BACKGROUND (empty-scene (* SCALE 10) (* HEIGHT 10)))
@@ -42,6 +43,8 @@
 (define TEST-GAME-2 (make-game (make-posn 50 50) 1))
 (define TEST-GAME-3 (make-game (make-posn 50 50) 2))
 (define TEST-GAME-4 (make-game (make-posn 50 50) 3))
+(define INITIAL-POSN (make-posn (* SCALE 5) (* HEIGHT 5)))
+(define INITIAL-GAME (make-game INITIAL-POSN 1))
 
 ;---------------------------
 ; Core Function Definitions
@@ -50,9 +53,9 @@
 ; Game -> Game 
 ; move the snake based on its direction
 (check-expect (move TEST-GAME-1) (make-game (make-posn 50 49) 0))
-(check-expect (move TEST-GAME-2) (make-game (make-posn 49 50) 1))
+(check-expect (move TEST-GAME-2) (make-game (make-posn 51 50) 1))
 (check-expect (move TEST-GAME-3) (make-game (make-posn 50 51) 2))
-(check-expect (move TEST-GAME-4) (make-game (make-posn 51 50) 3))
+(check-expect (move TEST-GAME-4) (make-game (make-posn 49 50) 3))
 
 (define (move gs)
   (let*([pos (game-pos gs)]
@@ -60,12 +63,37 @@
         [x (posn-x pos)]
         [y (posn-y pos)])
     (cond [(= dir 0) (make-game (make-posn x (- y 1)) dir)]
-          [(= dir 1) (make-game (make-posn (- x 1)  y)  dir)]
+          [(= dir 1) (make-game (make-posn (+ x 1)  y)  dir)]
           [(= dir 2) (make-game (make-posn x (+ y 1)) dir)]
-          [(= dir 3) (make-game (make-posn (+ x 1) y)  dir)])))
+          [(= dir 3) (make-game (make-posn (- x 1) y)  dir)])))
+
+; Game Command -> Game
+; change the direction of the game based on the command
+(define (change-dir s cmd)
+  (cond 
+    [(key=? cmd "up") (make-game (game-pos s) 0)]
+    [(key=? cmd "right") (make-game (game-pos s) 1)]
+    [(key=? cmd "down") (make-game (game-pos s) 2)]
+    [(key=? cmd "left") (make-game (game-pos s) 3)]
+    [else s]))
 
 
+;-------------------
+; Display Rendering
+;-------------------
 
+; Game Structure -> Scene
+; Render the worm on the screen
+(define (render-game s)
+  (place-image HEAD
+               (posn-x (game-pos s)) (posn-y (game-pos s))
+               BACKGROUND))
 
-
+; Create the world
+(big-bang INITIAL-GAME
+          (on-tick move)
+          (on-key change-dir)
+          (to-draw render-game))
+               
+               
 
