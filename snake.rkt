@@ -3,22 +3,29 @@
 #reader(lib "htdp-intermediate-reader.ss" "lang")((modname snake) (read-case-sensitive #t) (teachpacks ((lib "image.ss" "teachpack" "2htdp") (lib "universe.ss" "teachpack" "2htdp"))) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ((lib "image.ss" "teachpack" "2htdp") (lib "universe.ss" "teachpack" "2htdp")))))
 ; Andrew Tran-Snake Game
 
+(require 2htdp/image)
+(require 2htdp/universe)
+
+;------------------
 ; Data definitions
-; direction is current direction of travel for the worm, and is either
+;------------------
+
+; A Direction is current direction of travel for the worm, and is either
 ; - 0: up
 ; - 1: right
 ; - 2: down
 ; - 3: left
 
-(define-struct game (posn dir))
-; A worm is a structure:
-; - (make-worm posn number)
-; interp. (make-worm x  dir) represents the position of the worm x,
-; and the direction the disk is moving, dir
+(define-struct game (pos dir))
+; A game is a structure:
+; - (make-game posn number)
+; interp. (make-game x dir) represents the position of the worm x,
+; and the direction the worm is moving, dir
 
-
-
+;-------------------
 ; Physical Contents
+;-------------------
+
 (define SCALE 30)
 (define HEIGHT 19)
 
@@ -31,10 +38,22 @@
 (define FOOD (circle (/ SCALE 2) "solid" "blue"))
 
 
+(define TEST-GAME-1 (make-game (make-posn 50 50) 0))
+(define TEST-GAME-2 (make-game (make-posn 50 50) 1))
+(define TEST-GAME-3 (make-game (make-posn 50 50) 2))
+(define TEST-GAME-4 (make-game (make-posn 50 50) 3))
 
-; Functions
+;---------------------------
+; Core Function Definitions
+;---------------------------
 
 ; Game -> Game 
+; move the snake based on its direction
+(check-expect (move TEST-GAME-1) (make-game (make-posn 50 49) 0))
+(check-expect (move TEST-GAME-2) (make-game (make-posn 49 50) 1))
+(check-expect (move TEST-GAME-3) (make-game (make-posn 50 51) 2))
+(check-expect (move TEST-GAME-4) (make-game (make-posn 51 50) 3))
+
 (define (move gs)
   (let*([pos (game-pos gs)]
         [dir (game-dir gs)]
