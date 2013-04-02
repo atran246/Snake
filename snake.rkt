@@ -27,15 +27,18 @@
 ;-------------------
 
 (define SCALE 30)
-(define HEIGHT 19)
-
+(define HEIGHT 30)
+(define BODY-RADIUS (/ SCALE 5))
+(define BACKGROUND-HEIGHT (* HEIGHT 10))
+(define BACKGROUND-WIDTH (* SCALE 10))
+ 
 ; Snake
-(define HEAD (circle (/ SCALE 5) "solid" "orange"))
-(define BODY (circle (/ SCALE 5) "solid" "red"))
+(define HEAD (circle BODY-RADIUS "solid" "orange"))
+(define BODY (circle BODY-RADIUS "solid" "red"))
 
 
 ; Graphical Constants
-(define BACKGROUND (empty-scene (* SCALE 10) (* HEIGHT 10)))
+(define BACKGROUND (empty-scene BACKGROUND-WIDTH BACKGROUND-HEIGHT))
 (define FOOD (circle (/ SCALE 2) "solid" "blue"))
 
 
@@ -52,30 +55,69 @@
 
 ; Game -> Game 
 ; move the snake based on its direction
-(check-expect (move TEST-GAME-1) (make-game (make-posn 50 49) 0))
-(check-expect (move TEST-GAME-2) (make-game (make-posn 51 50) 1))
-(check-expect (move TEST-GAME-3) (make-game (make-posn 50 51) 2))
-(check-expect (move TEST-GAME-4) (make-game (make-posn 49 50) 3))
+(check-expect (move TEST-GAME-1) (make-game (make-posn 50 35) 0))
+(check-expect (move TEST-GAME-2) (make-game (make-posn 65 50) 1))
+(check-expect (move TEST-GAME-3) (make-game (make-posn 50 65) 2))
+(check-expect (move TEST-GAME-4) (make-game (make-posn 35 50) 3))
 
 (define (move gs)
   (let*([pos (game-pos gs)]
         [dir (game-dir gs)]
         [x (posn-x pos)]
         [y (posn-y pos)])
-    (cond [(= dir 0) (make-game (make-posn x (- y 1)) dir)]
-          [(= dir 1) (make-game (make-posn (+ x 1)  y)  dir)]
-          [(= dir 2) (make-game (make-posn x (+ y 1)) dir)]
-          [(= dir 3) (make-game (make-posn (- x 1) y)  dir)])))
+    (cond [(= dir 0) (make-game (make-posn x (- y (/ SCALE 2))) dir)]
+          [(= dir 1) (make-game (make-posn (+ x (/ SCALE 2)) y) dir)]
+          [(= dir 2) (make-game (make-posn x (+ y (/ SCALE 2))) dir)]
+          [(= dir 3) (make-game (make-posn (- x (/ SCALE 2)) y) dir)])))
 
 ; Game Command -> Game
 ; change the direction of the game based on the command
+(check-expect (change-dir TEST-GAME-2 "up") 
+                          (make-game (game-pos TEST-GAME-2) 0))
+(check-expect (change-dir TEST-GAME-2 "right") 
+                          (make-game (game-pos TEST-GAME-2) 1))
+(check-expect (change-dir TEST-GAME-2 "down") 
+                          (make-game (game-pos TEST-GAME-2) 2))
+(check-expect (change-dir TEST-GAME-2 "left") 
+                          (make-game (game-pos TEST-GAME-2) 3))
+(check-expect (change-dir TEST-GAME-2 "a") 
+                          (make-game (game-pos TEST-GAME-2) 1))
 (define (change-dir s cmd)
-  (cond 
+  (cond  
     [(key=? cmd "up") (make-game (game-pos s) 0)]
     [(key=? cmd "right") (make-game (game-pos s) 1)]
     [(key=? cmd "down") (make-game (game-pos s) 2)]
     [(key=? cmd "left") (make-game (game-pos s) 3)]
     [else s]))
+
+; Game -> Game
+; determine if the snake has hit the top of the background
+(define (hit-top s)
+  (<= (posn-y (game-pos s)) BODY-RADIUS))
+
+; Game -> Game
+; determine if the snake has hit the bottom of the background
+(define (hit-bottom s)
+  (>= (posn-y (game-pos s)) BACKGROUND-HEIGHT)) 
+
+; Game -> Game
+; determine if the snake has hit the left of the background
+(define (hit-left s)
+  (<= (posn-x (game-pos s)) BODY-RADIUS)) 
+
+; Game -> Game
+; determine if the snake has hit the right of the background
+(define (hit-right s)
+  (>= (posn-x (game-pos s)) BACKGROUND-WIDTH)) 
+
+; Game -> Game
+; determine if the snake has collided with a wall
+(define (detect-collision s)
+  (or (hit-top s)
+      (hit-bottom s)
+      (hit-left s)
+      (hit-right s)))
+
 
 
 ;-------------------
@@ -91,9 +133,10 @@
 
 ; Create the world
 (big-bang INITIAL-GAME
-          (on-tick move)
+          (on-tick move 0.15)
           (on-key change-dir)
-          (to-draw render-game))
+          (to-draw render-game)
+          (stop-when detect-collision))
                
                
 
