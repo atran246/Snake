@@ -118,8 +118,6 @@
       (hit-left s)
       (hit-right s)))
 
-
-
 ;-------------------
 ; Display Rendering
 ;-------------------
@@ -131,12 +129,20 @@
                (posn-x (game-pos s)) (posn-y (game-pos s))
                BACKGROUND))
 
+; Game Structure -> Scene
+; Render the worm on the screen with an ending message
+(define (render-endgame s)
+  (place-image HEAD
+               (posn-x (game-pos s)) (posn-y (game-pos s))
+               (overlay/align "left" "bottom" (text " worm hit border" 24 "black") 
+                                        BACKGROUND))) 
+
 ; Create the world
 (big-bang INITIAL-GAME
           (on-tick move 0.15)
           (on-key change-dir)
           (to-draw render-game)
-          (stop-when detect-collision))
+          (stop-when detect-collision render-endgame))
                
                
 
