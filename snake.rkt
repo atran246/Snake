@@ -22,10 +22,11 @@
 ; interp. (make-worm x dir) represents the position of the worm x,
 ; and the direction the worm is moving, dir
 
-(define-struct game (low))
+(define-struct game (worms))
 ; A game is a structure:
-; - (make-game (list-of-worms))
-; interp. (make-game (low)) represents a list of worm segments
+; - (make-game (head list-of-worms))
+; interp. (make-game (head low)) represents a head
+; and represents a list of worm segments that make up the tail
 
 ;-------------------
 ; Physical Contents
@@ -53,7 +54,8 @@
 (define TEST-WORM-4 (make-worm (make-posn 50 50) 3))
 (define INITIAL-POSN (make-posn (* SCALE 5) (* HEIGHT 5)))
 (define INITIAL-WORM (make-worm INITIAL-POSN 1))
-(define INITIAL-GAME (make-game (list INITIAL-WORM empty)))
+(define INITIAL-WORM2 (make-worm (make-posn (* SCALE 4) (* HEIGHT 5))  1))
+(define INITIAL-GAME (make-game (cons INITIAL-WORM  empty)))
 
 ;---------------------------
 ; Core Function Definitions
@@ -80,9 +82,10 @@
 ; Game -> Game 
 ; move the snake based on its direction
 (define (move-worm gs)
-  (cond 
-    [(empty? (rest gs)) (move (first gs))]
-    [(cons? gs) (move (first gs) (move-worm (rest gs)))]))
+  (let* ([gws (game-worms gs)])   
+  (cond   
+    [(empty? (rest gws)) (make-game (cons (move (first gws)) empty))]
+    [(cons? gws) (make-game (cons (move (first gs) (move-worm (rest gs)))))])))
 
 ; worm Command -> worm
 ; change the direction of the worm based on the command
@@ -103,6 +106,14 @@
     [(key=? cmd "down") (make-worm (worm-pos s) 2)]
     [(key=? cmd "left") (make-worm (worm-pos s) 3)]
     [else s]))
+
+; worm Command -> worm
+; change the direction of the worm based on the command
+(define (change-dir* gs cmd)
+ (let* ([gws (game-worms gs)])   
+  (cond   
+    [(empty? (rest gws)) (make-game (cons (change-dir (first gws) cmd) empty))]
+    [(cons? gws) (cons (change-dir (first gs) (change-dir* (rest gs) cmd)))])))
 
 ; worm -> worm
 ; determine if the snake has hit the top of the background
@@ -148,9 +159,9 @@
 ; Render the game on the screen
 (define (render-game s)
   (cond 
-    [(empty? (rest (game-low s))) (render-worm (first (game-low s)))]
-    [(cons? (game-low s)) (render-worm (first (game-low s)) 
-                                               (render-game (rest (game-low s))))]))
+    [(empty? (rest (game-worms s))) (render-worm (first (game-worms s)))]
+    [else  (render-worm (first (game-worms s)) 
+           (render-game (rest (game-worms s))))]))
 
 ; Game Structure -> Scene
 ; Render the worm on the screen with an ending message
@@ -163,9 +174,8 @@
 ; Create the world
 (big-bang INITIAL-GAME
           (on-tick move-worm 0.15)
-          (on-key change-dir)
-          (to-draw render-game)
-          (stop-when detect-collision render-endgame))
+          (on-key change-dir*)
+          (to-draw render-game))
           
                
 
