@@ -55,7 +55,8 @@
 (define INITIAL-POSN (make-posn (* SCALE 5) (* HEIGHT 5)))
 (define INITIAL-WORM (make-worm INITIAL-POSN 1))
 (define INITIAL-WORM2 (make-worm (make-posn (* SCALE 4) (* HEIGHT 5))  1))
-(define INITIAL-GAME (make-game  INITIAL-WORM (cons INITIAL-WORM2 empty)))
+(define INITIAL-WORM3 (make-worm (make-posn (* SCALE 3) (* HEIGHT 5))  1))
+(define INITIAL-GAME (make-game  INITIAL-WORM (cons INITIAL-WORM2 (cons INITIAL-WORM3 empty))))
 
 ;---------------------------
 ; Core Function Definitions
@@ -63,32 +64,33 @@
 
 ; Game -> Game 
 ; move the snake based on its direction
-(check-expect (move TEST-WORM-1) (make-worm (make-posn 50 35) 0))
-(check-expect (move TEST-WORM-2) (make-worm (make-posn 65 50) 1))
-(check-expect (move TEST-WORM-3) (make-worm (make-posn 50 65) 2))
-(check-expect (move TEST-WORM-4) (make-worm (make-posn 35 50) 3))
+(check-expect (move TEST-WORM-1) (make-worm (make-posn 50 20) 0))
+(check-expect (move TEST-WORM-2) (make-worm (make-posn 80 50) 1))
+(check-expect (move TEST-WORM-3) (make-worm (make-posn 50 80) 2))
+(check-expect (move TEST-WORM-4) (make-worm (make-posn 20 50) 3))
 (define (move gs)
   (let*([pos (worm-pos gs)]
         [dir (worm-dir gs)]
         [x (posn-x pos)]
         [y (posn-y pos)])
-    (cond [(= dir 0) (make-worm (make-posn x (- y (/ SCALE 2))) dir)]
-          [(= dir 1) (make-worm (make-posn (+ x (/ SCALE 2)) y) dir)]
-          [(= dir 2) (make-worm (make-posn x (+ y (/ SCALE 2))) dir)]
-          [(= dir 3) (make-worm (make-posn (- x (/ SCALE 2)) y) dir)])))
+    (cond [(= dir 0) (make-worm (make-posn x (- y SCALE )) dir)]
+          [(= dir 1) (make-worm (make-posn (+ x  SCALE ) y) dir)]
+          [(= dir 2) (make-worm (make-posn x (+ y  SCALE )) dir)]
+          [(= dir 3) (make-worm (make-posn (- x SCALE ) y) dir)])))
 
 
 ; Game -> Game 
 ; move the snake based on its direction
 (define (move-worm low)   
-    (cond   
-      [(empty? (rest low)) (cons (move (first low)) empty)]
-      [(cons? low)(cons (move (first low)) (move-worm (rest low)))]))
+  (cond   
+    [(empty? (rest low)) empty]
+    [(cons? low) (cons (first low) (move-worm (rest low)))]))
 
 ; Game -> Game 
 ; move the snake based on its direction
 (define (move-worm* gs)
-  (make-game (move (game-worm gs)) (move-worm (game-low gs))))
+  (make-game (move (game-worm gs)) (cons (game-worm gs)
+                                         (move-worm (game-low gs)))))
 
 ; worm Command -> worm
 ; change the direction of the worm based on the command
@@ -110,17 +112,32 @@
     [(key=? cmd "left") (make-worm (worm-pos s) 3)]
     [else s]))
 
-; worm Command -> worm
-; change the direction of the worm based on the command
-(define (change-dir* gs cmd)   
-    (cond   
-      [(empty? (rest gs)) (cons (change-dir (first gs) cmd) empty)]
-      [(cons? gs) (cons (change-dir (first gs) cmd) (change-dir* (rest gs) cmd))]))
 
 ; Game Command -> Game
 ; change the direction of the worm based on the command
-(define (change-dir*2 gs cmd)
-  (make-game (change-dir (game-worm gs) cmd ) (change-dir* (game-low gs) cmd)))
+(define (change-dir* gs cmd)
+  (make-game (change-dir (game-worm gs) cmd) (game-low gs))) 
+
+; Game Command -> Game
+; change the direction of the worm based on the command
+(define (change-worm-dir low)
+  (cond 
+    [(empty? (rest low)) empty]
+    [(cons? (rest low)) (cons  (first low) (change-worm-dir (rest low)))]))
+
+; Game Command -> Game
+; change the direction of the worm based on the command 
+(define (change-worm-dir* gs)
+  (let* ([low (game-low gs)])
+    (make-game (game-worm gs) 
+               (cons (make-worm (worm-pos (first low)) (worm-dir (game-worm gs)))
+                     (change-worm-dir low)))))
+
+
+; Game -> Game 
+; move the snake 
+(define (update-worm gs)
+  (move-worm* (change-worm-dir* gs)))
 
 
 ; worm -> worm
@@ -146,10 +163,10 @@
 ; worm -> worm
 ; determine if the snake has collided with a wall
 (define (detect-collision s)
-  (or (hit-top s)
-      (hit-bottom s)
-      (hit-left s)
-      (hit-right s)))
+  (or (hit-top (game-worm s)) 
+      (hit-bottom (game-worm s))
+      (hit-left (game-worm s))
+      (hit-right (game-worm s))))
 
 ;-------------------
 ; Display Rendering
@@ -169,28 +186,26 @@
   (let* ([gws (game-low s)])
     (place-image HEAD 
                  (posn-x (worm-pos (game-worm s))) (posn-y (worm-pos (game-worm s)))
-    (cond 
-      [(empty? (rest gws)) (place-image BODY
-                                        (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s))))
-                                        BACKGROUND)]
-      [else (place-image BODY  
-                         (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
-                          (render-game (make-game (rest (game-low s)))))]))))
-  
-  ; Game Structure -> Scene
-  ; Render the worm on the screen with an ending message
-  (define (render-endgame s)
-    (place-image HEAD (posn-x (worm-pos (first s))) (posn-y (worm-pos (first s)))
-                 (posn-x (worm-pos s)) (posn-y (worm-pos s))
-                 (overlay/align "left" "bottom" (text " worm hit border" 24 "black") 
-                                BACKGROUND))) 
-  
-  ; Create the world
-  (big-bang INITIAL-GAME
-            (on-tick move-worm* 0.15)
-            (on-key change-dir*2)
-            (to-draw render-game))
-  
-  
-  
-  
+                 (cond 
+                   [(empty? (rest gws)) (place-image BODY
+                                                     (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s))))
+                                                     BACKGROUND)]
+                   [else (place-image BODY  
+                                      (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
+                                      (render-game (make-game (game-worm s) (rest (game-low s)))))]))))
+
+; Game Structure -> Scene
+; Render the worm on the screen with an ending message
+(define (render-endgame s)
+  (place-image HEAD (posn-x (worm-pos (first s))) (posn-y (worm-pos (first s)))
+               (posn-x (worm-pos s)) (posn-y (worm-pos s))
+               (overlay/align "left" "bottom" (text " worm hit border" 24 "black") 
+                              BACKGROUND))) 
+
+; Create the world
+(big-bang INITIAL-GAME
+          (on-tick update-worm 0.15)
+          (on-key change-dir*)
+          (to-draw render-game)
+          (stop-when detect-collision))
+
