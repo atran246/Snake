@@ -56,7 +56,13 @@
 (define INITIAL-WORM (make-worm INITIAL-POSN 1))
 (define INITIAL-WORM2 (make-worm (make-posn (* SCALE 4) (* HEIGHT 5))  1))
 (define INITIAL-WORM3 (make-worm (make-posn (* SCALE 3) (* HEIGHT 5))  1))
-(define INITIAL-GAME (make-game  INITIAL-WORM (cons INITIAL-WORM2 (cons INITIAL-WORM3 empty))))
+(define INITIAL-WORM4 (make-worm (make-posn (* SCALE 2) (* HEIGHT 5))  1))
+(define INITIAL-WORM5 (make-worm (make-posn (* SCALE 1) (* HEIGHT 5))  1))
+(define INITIAL-GAME (make-game  INITIAL-WORM 
+                                 (cons INITIAL-WORM2 
+                                       (cons INITIAL-WORM3 
+                                             (cons INITIAL-WORM4 
+                                                   (cons INITIAL-WORM5 empty))))))
 
 ;---------------------------
 ; Core Function Definitions
@@ -118,6 +124,7 @@
 (define (change-dir* gs cmd)
   (make-game (change-dir (game-worm gs) cmd) (game-low gs))) 
 
+
 ; Game Command -> Game
 ; change the direction of the worm based on the command
 (define (change-worm-dir low)
@@ -132,7 +139,6 @@
     (make-game (game-worm gs) 
                (cons (make-worm (worm-pos (first low)) (worm-dir (game-worm gs)))
                      (change-worm-dir low)))))
-
 
 ; Game -> Game 
 ; move the snake 
@@ -168,6 +174,28 @@
       (hit-left (game-worm s))
       (hit-right (game-worm s))))
 
+; worm low -> worm low
+; determine if the worm has hit itself
+(define (hit-self? h t)
+  (let*(
+        [wpos (worm-pos h)]
+        [wy (posn-y wpos)]
+        [wx (posn-x wpos)]
+        [f (first t)]
+        [fpos (worm-pos f)]
+        [fy (posn-y fpos)]
+        [fx (posn-x fpos)])
+    (cond
+      [(empty? (rest t)) false]
+      [(and (= wy fy) (= wx fx)) true]
+      [else (hit-self? h (rest t))])))
+
+; game -> game
+; determine if the worm has collided with the wall or itself
+(define (collided? g)
+  (or (detect-collision g)
+      (hit-self? (game-worm g) (game-low g))))
+
 ;-------------------
 ; Display Rendering
 ;-------------------
@@ -200,12 +228,12 @@
   (place-image HEAD (posn-x (worm-pos (first s))) (posn-y (worm-pos (first s)))
                (posn-x (worm-pos s)) (posn-y (worm-pos s))
                (overlay/align "left" "bottom" (text " worm hit border" 24 "black") 
-                              BACKGROUND))) 
+                              BACKGROUND)))  
 
 ; Create the world
 (big-bang INITIAL-GAME
           (on-tick update-worm 0.15)
           (on-key change-dir*)
           (to-draw render-game)
-          (stop-when detect-collision))
+          (stop-when collided?))
 
