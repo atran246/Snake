@@ -52,17 +52,24 @@
 (define TEST-WORM-2 (make-worm (make-posn 50 50) 1))
 (define TEST-WORM-3 (make-worm (make-posn 50 50) 2))
 (define TEST-WORM-4 (make-worm (make-posn 50 50) 3))
-(define INITIAL-POSN (make-posn (* SCALE 5) (* HEIGHT 5)))
+(define INITIAL-POSN (make-posn (* SCALE 8) (* HEIGHT 5)))
 (define INITIAL-WORM (make-worm INITIAL-POSN 1))
-(define INITIAL-WORM2 (make-worm (make-posn (* SCALE 4) (* HEIGHT 5))  1))
-(define INITIAL-WORM3 (make-worm (make-posn (* SCALE 3) (* HEIGHT 5))  1))
-(define INITIAL-WORM4 (make-worm (make-posn (* SCALE 2) (* HEIGHT 5))  1))
-(define INITIAL-WORM5 (make-worm (make-posn (* SCALE 1) (* HEIGHT 5))  1))
+(define INITIAL-WORM2 (make-worm (make-posn (* SCALE 7) (* HEIGHT 5))  1))
+(define INITIAL-WORM3 (make-worm (make-posn (* SCALE 6) (* HEIGHT 5))  1))
+(define INITIAL-WORM4 (make-worm (make-posn (* SCALE 5) (* HEIGHT 5))  1))
+(define INITIAL-WORM5 (make-worm (make-posn (* SCALE 4) (* HEIGHT 5))  1))
+(define INITIAL-WORM6 (make-worm (make-posn (* SCALE 3) (* HEIGHT 5))  1))
+(define INITIAL-WORM7 (make-worm (make-posn (* SCALE 2) (* HEIGHT 5))  1))
+(define INITIAL-WORM8 (make-worm (make-posn (* SCALE 1) (* HEIGHT 5))  1))
 (define INITIAL-GAME (make-game  INITIAL-WORM 
                                  (cons INITIAL-WORM2 
                                        (cons INITIAL-WORM3 
                                              (cons INITIAL-WORM4 
-                                                   (cons INITIAL-WORM5 empty))))))
+                                                   (cons INITIAL-WORM5
+                                                         (cons INITIAL-WORM6 
+                                                               (cons INITIAL-WORM7 
+                                                                     (cons INITIAL-WORM8 empty)))))))))
+
 
 ;---------------------------
 ; Core Function Definitions
@@ -130,7 +137,7 @@
 (define (change-worm-dir low)
   (cond 
     [(empty? (rest low)) empty]
-    [(cons? (rest low)) (cons  (first low) (change-worm-dir (rest low)))]))
+    [(cons? (rest low)) (cons  (first (rest low)) (change-worm-dir (rest low)))]))
 
 ; Game Command -> Game
 ; change the direction of the worm based on the command 
@@ -179,7 +186,7 @@
 (define (hit-self? h t)
   (let*(
         [wpos (worm-pos h)]
-        [wy (posn-y wpos)]
+        [wy (posn-y wpos)] 
         [wx (posn-x wpos)]
         [f (first t)]
         [fpos (worm-pos f)]
@@ -225,15 +232,24 @@
 ; Game Structure -> Scene
 ; Render the worm on the screen with an ending message
 (define (render-endgame s)
-  (place-image HEAD (posn-x (worm-pos (first s))) (posn-y (worm-pos (first s)))
-               (posn-x (worm-pos s)) (posn-y (worm-pos s))
-               (overlay/align "left" "bottom" (text " worm hit border" 24 "black") 
-                              BACKGROUND)))  
+  (let* ([gws (game-low s)])
+    (place-image HEAD 
+                 (posn-x (worm-pos (game-worm s))) (posn-y (worm-pos (game-worm s)))
+                 (cond 
+                   [(empty? (rest gws)) (place-image BODY
+                                                     (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s))))
+                                                     (overlay/align "left" "bottom" (text " lol you lost :D" 36 "black") 
+                              BACKGROUND))] 
+                   [else (place-image BODY  
+                                      (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
+                                      (render-endgame (make-game (game-worm s) (rest (game-low s)))))]))))
+
 
 ; Create the world
 (big-bang INITIAL-GAME
           (on-tick update-worm 0.15)
           (on-key change-dir*)
           (to-draw render-game)
-          (stop-when collided?))
+          (stop-when collided? render-endgame))
+
 
