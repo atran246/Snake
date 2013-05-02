@@ -46,11 +46,11 @@
 
 ; Snake
 (define HEAD (circle BODY-RADIUS "solid" "red"))
-(define BODY (circle BODY-RADIUS "solid" "orange"))
+(define BODY (circle BODY-RADIUS "solid"  "black")) 
 
 
 ; Graphical Constants
-(define BACKGROUND (empty-scene BACKGROUND-WIDTH BACKGROUND-HEIGHT))
+(define BACKGROUND (empty-scene BACKGROUND-WIDTH BACKGROUND-HEIGHT "black"))
 (define FOOD (circle BODY-RADIUS "solid" "blue"))
 
 
@@ -259,6 +259,13 @@
                           (game-low gs) 
                           
                                (game-food gs)))))
+
+; Game -> Number
+; count the number of tail segments
+(define (count-tail g)
+   (cond
+    [(empty? g) 0] 
+    [else (+ (count-tail (rest g)) 1)]))
   
 
 ;-------------------
@@ -275,6 +282,17 @@
 
 
 ; Game Structure -> Scene
+; Render the worm on the screen
+(define (render-worm-death s )
+  (place-image HEAD
+               (posn-x (worm-pos (game-worm s))) (posn-y (worm-pos (game-worm s)))
+               (place-image FOOD (food-x (game-food s))
+                            (food-y (game-food s)) (overlay/align "middle" "middle" (text  "You Lose :( Score: 0" 
+                                                                                                          36 "White") 
+                                                                    BACKGROUND))))
+
+
+; Game Structure -> Scene
 ; Render the game on the screen
 (define (render-game s)
   (if (empty? (game-low s)) (render-worm s)
@@ -285,10 +303,13 @@
     (place-image HEAD 
                  (posn-x (worm-pos (game-worm s))) (posn-y (worm-pos (game-worm s)))
                  (cond 
-                   [(empty? (rest gws)) (place-image BODY
+                   [(empty? (rest gws)) (place-image (circle BODY-RADIUS "solid" (list-ref (list "turquoise" "magenta" "gold" 
+                                                                                                 "red" "blue" "green" "pink" "purple" "orange"
+                                                         ) (random 9)))
                                                      (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s))))
                                                      (place-image FOOD fx fy BACKGROUND))]
-                   [else (place-image BODY  
+                   [else (place-image (circle BODY-RADIUS "solid" (list-ref (list "turquoise" "magenta" "gold" "red" "blue" "green" "pink" "purple" "orange"
+                                                         ) (random 9)))  
                                       (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
                                       (render-game (make-game (game-worm s) (rest (game-low s)) (game-food s))))])))))
 
@@ -296,14 +317,16 @@
 ; Render the worm on the screen with an ending message
 (define (render-endgame s)
   (if (empty? (game-low s)) 
-      (render-worm  s)
+      (render-worm-death  s)
   (let* ([gws (game-low s)])
     (place-image HEAD 
                  (posn-x (worm-pos (game-worm s))) (posn-y (worm-pos (game-worm s)))
                  (cond 
-                   [(empty? (rest gws)) (place-image BODY 
+                   [(empty? (rest gws)) (overlay/align "middle" "middle" (text (string-append "You Lose :( Score:" 
+                                                                                                         (number->string (count-tail (game-low s))))  36 "White")
+                                                       (place-image BODY 
                                                      (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s))))
-                                                     (overlay/align "left" "bottom" (text " lol you lost :D" 36 "black") 
+                                                      
                                                                     BACKGROUND))] 
                    [else (place-image BODY  
                                       (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
