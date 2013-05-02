@@ -37,12 +37,12 @@
 ; Physical Contents
 ;-------------------
 
-(define SCALE 30)
-(define HEIGHT 30)
+(define SCALE 10)
+(define HEIGHT 10)
 (define BODY-RADIUS (/ SCALE 2))
-(define BACKGROUND-HEIGHT (* HEIGHT 20))
-(define BACKGROUND-WIDTH (* SCALE 20))
-(define MAX 20)
+(define BACKGROUND-HEIGHT (* HEIGHT 50))
+(define BACKGROUND-WIDTH (* SCALE 50))
+(define MAX 49)
 
 ; Snake
 (define HEAD (circle BODY-RADIUS "solid" "red"))
@@ -221,8 +221,8 @@
 ; Posn -> Posn 
 ; make a new food once the worm has eaten the previous one
 (define (food-create p)
-  (food-check-create p (make-food (* SCALE (random MAX)) 
-                                  (* HEIGHT(random MAX)))))
+  (food-check-create p (make-food (* SCALE (+ (random MAX) 1)) 
+                                  (* HEIGHT (+ (random MAX) 1)))))
 
 
 ; Posn Posn -> Posn 
@@ -247,7 +247,8 @@
 ; add a segment to the worm 
 (define (add-segment gs)
   (make-game (move (game-worm gs)) (cons (game-worm gs) (game-low gs))
-             (game-food gs)))
+             (if (eating-food? gs)
+                              (food-create (worm-pos (game-worm gs)))(game-food gs))))
 
 ; Game -> Game
 ; Update the game state
@@ -256,9 +257,8 @@
       (add-segment gs)
       (update-worm (make-game (game-worm gs) 
                           (game-low gs) 
-                          (if (eating-food? gs)
-                              (food-create (worm-pos (game-worm gs)))
-                               (game-food gs))))))
+                          
+                               (game-food gs)))))
   
 
 ;-------------------
@@ -312,7 +312,7 @@
 
 ; Create the world
 (big-bang INITIAL-GAME
-          (on-tick update-game 0.15)
+          (on-tick update-game 0.05)
           (on-key change-dir*)
           (to-draw render-game)
           (stop-when collided? render-endgame))
