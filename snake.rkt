@@ -82,8 +82,8 @@
 ; move the snake based on its direction
 (check-expect (move TEST-WORM-1) (make-worm (make-posn 50 40) 0))
 (check-expect (move TEST-WORM-2) (make-worm (make-posn 60 50) 1))
-(check-expect (move TEST-WORM-3) (make-worm (make-posn 50 60) 2))
-(check-expect (move TEST-WORM-4) (make-worm (make-posn 40 50) 3))
+(check-expect (move TEST-WORM-3) (make-worm (make-posn 40 50) 2))
+(check-expect (move TEST-WORM-4) (make-worm (make-posn 50 60) 3))
 (define (move gs)
   (let*([pos (worm-pos gs)]
         [dir (worm-dir gs)]
@@ -117,9 +117,9 @@
 (check-expect (change-dir TEST-WORM-2 "right") 
               (make-worm (worm-pos TEST-WORM-2) 1))
 (check-expect (change-dir TEST-WORM-2 "down") 
-              (make-worm (worm-pos TEST-WORM-2) 2))
-(check-expect (change-dir TEST-WORM-2 "left") 
               (make-worm (worm-pos TEST-WORM-2) 3))
+(check-expect (change-dir TEST-WORM-2 "left") 
+              (make-worm (worm-pos TEST-WORM-2) 2))
 (check-expect (change-dir TEST-WORM-2 "a") 
               (make-worm (worm-pos TEST-WORM-2) 1))
 (define (change-dir s cmd)
