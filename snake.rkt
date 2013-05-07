@@ -13,8 +13,8 @@
 ; A Direction is current direction of travel for the worm, and is either
 ; - 0: up
 ; - 1: right
-; - 2: down
-; - 3: left
+; - 2: left
+; - 3: down
 
 (define-struct worm (pos dir))
 ; A worm is a structure:
@@ -27,7 +27,7 @@
 ; -(make-food (x y))
 ; interp. (make-food x y)) represents the x position x and y position of the food y
 
-(define-struct game (worm low food))
+(define-struct game (worm low food score))
 ; A game is a structure:
 ; - (make-game ( worm list-of-worms food))
 ; interp. (make-game (low)) represents a head and represents a list of 
@@ -40,8 +40,8 @@
 (define SCALE 10)
 (define HEIGHT 10)
 (define BODY-RADIUS (/ SCALE 2))
-(define BACKGROUND-HEIGHT (* HEIGHT 50))
-(define BACKGROUND-WIDTH (* SCALE 50))
+(define BACKGROUND-HEIGHT (* HEIGHT 75))
+(define BACKGROUND-WIDTH (* SCALE 75))
 (define MAX 49)
 
 ; Snake
@@ -71,7 +71,7 @@
 (define INITIAL-WORM8 (make-worm (make-posn (* SCALE 1) (* HEIGHT 5))  1))
 (define INITIAL-GAME (make-game INITIAL-WORM 
                                   empty
-                                 INITIAL-FOOD))
+                                 INITIAL-FOOD 0))
 
 
 ;---------------------------
@@ -80,10 +80,10 @@
 
 ; Game -> Game 
 ; move the snake based on its direction
-(check-expect (move TEST-WORM-1) (make-worm (make-posn 50 20) 0))
-(check-expect (move TEST-WORM-2) (make-worm (make-posn 80 50) 1))
-(check-expect (move TEST-WORM-3) (make-worm (make-posn 50 80) 2))
-(check-expect (move TEST-WORM-4) (make-worm (make-posn 20 50) 3))
+(check-expect (move TEST-WORM-1) (make-worm (make-posn 50 40) 0))
+(check-expect (move TEST-WORM-2) (make-worm (make-posn 60 50) 1))
+(check-expect (move TEST-WORM-3) (make-worm (make-posn 50 60) 2))
+(check-expect (move TEST-WORM-4) (make-worm (make-posn 40 50) 3))
 (define (move gs)
   (let*([pos (worm-pos gs)]
         [dir (worm-dir gs)]
@@ -91,8 +91,8 @@
         [y (posn-y pos)])
     (cond [(= dir 0) (make-worm (make-posn x (- y SCALE )) dir)]
           [(= dir 1) (make-worm (make-posn (+ x  SCALE ) y) dir)]
-          [(= dir 2) (make-worm (make-posn x (+ y  SCALE )) dir)]
-          [(= dir 3) (make-worm (make-posn (- x SCALE ) y) dir)])))
+          [(= dir 3) (make-worm (make-posn x (+ y  SCALE )) dir)]
+          [(= dir 2) (make-worm (make-posn (- x SCALE ) y) dir)])))
 
 
 ; Game -> Game 
@@ -108,7 +108,7 @@
   (make-game (move (game-worm gs)) (if (empty? (game-low gs)) empty
                                        (cons (game-worm gs)
                                          (move-worm (game-low gs))))
-             (game-food gs)))
+             (game-food gs)  (game-score gs)))
 
 ; worm Command -> worm
 ; change the direction of the worm based on the command
@@ -126,15 +126,15 @@
   (cond  
     [(key=? cmd "up") (make-worm (worm-pos s) 0)]
     [(key=? cmd "right") (make-worm (worm-pos s) 1)]
-    [(key=? cmd "down") (make-worm (worm-pos s) 2)]
-    [(key=? cmd "left") (make-worm (worm-pos s) 3)]
+    [(key=? cmd "down") (make-worm (worm-pos s) 3)]
+    [(key=? cmd "left") (make-worm (worm-pos s) 2)]
     [else s]))
 
 
 ; Game Command -> Game
 ; change the direction of the worm based on the command
 (define (change-dir* gs cmd)
-  (make-game (change-dir (game-worm gs) cmd) (game-low gs) (game-food gs))) 
+  (make-game (change-dir (game-worm gs) cmd) (game-low gs) (game-food gs)  (game-score gs))) 
 
 
 ; Game Command -> Game
@@ -152,7 +152,7 @@
     (make-game (game-worm gs) 
                (cons (make-worm (worm-pos (first low)) (worm-dir (game-worm gs)))
                      (change-worm-dir low))
-               (game-food gs)))))
+               (game-food gs)  (game-score gs)))))
 
 ; Game -> Game 
 ; move the snake 
@@ -215,6 +215,7 @@
 ; determine if the worm has collided with the wall or itself
 (define (collided? g)
   (or (detect-collision g)
+      (if (empty? (game-low g)) false (= (+ (worm-dir (game-worm g)) (worm-dir (first (game-low g)))) 3)) 
       (if (empty? (game-low g)) false (hit-self? (game-worm g) (game-low g)))))
 
 
@@ -248,7 +249,8 @@
 (define (add-segment gs)
   (make-game (move (game-worm gs)) (cons (game-worm gs) (game-low gs))
              (if (eating-food? gs)
-                              (food-create (worm-pos (game-worm gs)))(game-food gs))))
+                              (food-create (worm-pos (game-worm gs)))(game-food gs))
+             (+ 1 (game-score gs))))
 
 ; Game -> Game
 ; Update the game state
@@ -257,8 +259,7 @@
       (add-segment gs)
       (update-worm (make-game (game-worm gs) 
                           (game-low gs) 
-                          
-                               (game-food gs)))))
+                               (game-food gs) (game-score gs)))))
 
 ; Game -> Number
 ; count the number of tail segments
@@ -311,7 +312,7 @@
                    [else (place-image (circle BODY-RADIUS "solid" (list-ref (list "turquoise" "magenta" "gold" "red" "blue" "green" "pink" "purple" "orange"
                                                          ) (random 9)))  
                                       (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
-                                      (render-game (make-game (game-worm s) (rest (game-low s)) (game-food s))))])))))
+                                      (render-game (make-game (game-worm s) (rest (game-low s)) (game-food s)  (game-score s))))])))))
 
 ; Game Structure -> Scene
 ; Render the worm on the screen with an ending message
@@ -323,14 +324,14 @@
                  (posn-x (worm-pos (game-worm s))) (posn-y (worm-pos (game-worm s)))
                  (cond 
                    [(empty? (rest gws)) (overlay/align "middle" "middle" (text (string-append "You Lose :( Score:" 
-                                                                                                         (number->string (count-tail (game-low s))))  36 "White")
+                                                                                                         (number->string (game-score s)))  36 "White")
                                                        (place-image BODY 
                                                      (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s))))
                                                       
                                                                     BACKGROUND))] 
                    [else (place-image BODY  
                                       (posn-x (worm-pos (first (game-low s)))) (posn-y (worm-pos (first (game-low s)))) 
-                                      (render-endgame (make-game (game-worm s) (rest (game-low s)) (game-food s))))])))))
+                                      (render-endgame (make-game (game-worm s) (rest (game-low s)) (game-food s)  (game-score s))))])))))
 
 
 ; Create the world
